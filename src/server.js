@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 import authRoutes from './routes/authRoutes.js'
 import estudianteRoutes from './routes/estudianteRoutes.js'
 import materiaRoutes from './routes/materiaRoutes.js'
-
+import matriculaRoutes from './routes/matriculaRoutes.js'
 dotenv.config()
 
 // Inicializaciones
@@ -27,6 +27,9 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes)
 //Ruta para estudiantes
 app.use('/api/estudiantes', estudianteRoutes)
-export default app
 //Ruta para materias
 app.use('/api/materias', materiaRoutes)
+// Ruta para matrículas
+app.use('/api/matriculas', matriculaRoutes)
+
+export default app
