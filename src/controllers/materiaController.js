@@ -41,27 +41,31 @@ const obtenerMaterias = async (req, res) => {
     }
 };
 
-// OBTENER POR ID
-const obtenerMateria = async (req, res) => {
+// BUSCAR MATERIA POR CODIGO O NOMBRE
+const buscarMateria = async (req, res) => {
     try {
-        const { id } = req.params;
-        // Validar formato ObjectId
-        if (!mongoose.Types.ObjectId.isValid(id)) {
+        let { codigo, nombre } = req.query;
+        if (codigo) codigo = codigo.trim();
+        if (nombre) nombre = nombre.trim();
+        if (!codigo && !nombre) {
             return res.status(400).json({
-                error: "ID no válido"
+                error: "Debe enviar código o nombre"
             });
         }
-        const materia = await Materia.findById(id);
-        if (!materia) {
-            return res.status(404).json({
-                error: "Materia no encontrada"
-            });
+        let filtro = {};
+        // Búsqueda parcial e insensible a mayúsculas
+        if (codigo) filtro.codigo = { $regex: codigo, $options: "i" };
+        if (nombre) filtro.nombre = { $regex: nombre, $options: "i" };
+        const materias = await Materia
+            .find(filtro)
+            .collation({ locale: "es", strength: 1 }); // Respeta acentos
+        if (materias.length === 0) {
+            return res.status(404).json({ error: "No se encontraron materias" });
         }
-        res.json({materia});
+        res.json({ materias });
     } catch (error) {
-        res.status(500).json({
-            error: "Error del servidor"
-        });
+        console.error(error);
+        res.status(500).json({ error: "Error del servidor" });
     }
 };
 
@@ -118,7 +122,7 @@ const eliminarMateria = async (req, res) => {
 export {
     crearMateria,
     obtenerMaterias,
-    obtenerMateria,
+    buscarMateria,
     actualizarMateria,
     eliminarMateria
 };

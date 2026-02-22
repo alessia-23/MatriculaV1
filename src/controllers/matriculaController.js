@@ -70,30 +70,57 @@ const obtenerMatriculas = async (req, res) => {
 };
 
 
-// OBTENER MATRÍCULA POR ID
-const obtenerMatricula = async (req, res) => {
+// BUSCAR MATRÍCULA 
+const buscarMatricula = async (req, res) => {
     try {
-        const { id } = req.params;
-        if (!mongoose.Types.ObjectId.isValid(id)) {
+        let { codigo, estudiante, materia } = req.query;
+        if (codigo) codigo = codigo.trim();
+        if (estudiante) estudiante = estudiante.trim();
+        if (materia) materia = materia.trim();
+        if (!codigo && !estudiante && !materia) {
             return res.status(400).json({
-                msg: "ID no válido"
+                msg: "Debe enviar al menos un parámetro de búsqueda"
             });
         }
-        const matricula = await Matricula.findById(id)
-            .populate("estudiante", "nombre apellido")
-            .populate("materia", "nombre codigo");
-        if (!matricula) {
-            return res.status(404).json({
-                msg: "Matrícula no encontrada"
+        const filtro = {};
+        // Búsqueda parcial e insensible a mayúsculas para código
+        if (codigo) filtro.codigo = { $regex: codigo, $options: "i" };
+        // Búsqueda por estudiante: buscamos primero el ObjectId
+        if (estudiante) {
+            const estudiantes = await Estudiante.find({
+                $or: [
+                    { nombre: { $regex: estudiante, $options: "i" } },
+                    { apellido: { $regex: estudiante, $options: "i" } },
+                    { cedula: { $regex: estudiante, $options: "i" } }
+                ]
             });
+            const idsEstudiantes = estudiantes.map(e => e._id);
+            filtro.estudiante = { $in: idsEstudiantes };
         }
-        res.json(matricula);
+        if (materia) {
+            const materias = await Materia.find({
+                $or: [
+                    { nombre: { $regex: materia, $options: "i" } },
+                    { codigo: { $regex: materia, $options: "i" } }
+                ]
+            });
+            const idsMaterias = materias.map(m => m._id);
+            filtro.materia = { $in: idsMaterias };
+        }
+        const matriculas = await Matricula.find(filtro)
+            .populate("estudiante", "nombre apellido cedula")
+            .populate("materia", "nombre codigo creditos")
+            .collation({ locale: "es", strength: 1 });
+        if (matriculas.length === 0) {
+            return res.status(404).json({ msg: "No se encontraron matrículas" });
+        }
+        res.json({ matriculas });
     } catch (error) {
-        res.status(500).json({
-            msg: "Error del servidor"
-        });
+        console.error(error);
+        res.status(500).json({ msg: "Error del servidor al buscar matrículas" });
     }
 };
+
 
 // ACTUALIZAR MATRÍCULA
 const actualizarMatricula = async (req, res) => {
@@ -195,6 +222,6 @@ export{
     crearMatricula,
     obtenerMatriculas,  
     actualizarMatricula,
-    obtenerMatricula,    
+    buscarMatricula,    
     eliminarMatricula
 }

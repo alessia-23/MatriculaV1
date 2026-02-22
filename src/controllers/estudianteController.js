@@ -51,27 +51,33 @@ const obtenerEstudiantes = async (req, res) => {
     }
 };
 
-// OBTENER POR ID
-const obtenerEstudiante = async (req, res) => {
+// BUSCAR POR CEDULA O APELLIDO
+const buscarEstudiante = async (req, res) => {
     try {
-        const { id } = req.params;
-        //Validar formato ObjectId
-        if (!mongoose.Types.ObjectId.isValid(id)) {
+        let { cedula, apellido } = req.query;
+        if (cedula) cedula = cedula.trim();
+        if (apellido) apellido = apellido.trim();
+        if (!cedula && !apellido) {
             return res.status(400).json({
-                error: "ID no válido"
+                error: "Debe enviar cédula o apellido"
             });
         }
-        //Buscar en BD
-        const estudiante = await Estudiante.findById(id);
-        if (!estudiante) {
+        let filtro = {};
+        if (cedula) {
+            filtro.cedula = cedula;
+        }
+        if (apellido) {
+            filtro.apellido = apellido;
+        }
+        const estudiantes = await Estudiante
+            .find(filtro)
+            .collation({ locale: "es", strength: 1 });
+        if (estudiantes.length === 0) {
             return res.status(404).json({
-                error: "Estudiante no encontrado"
+                error: "No se encontraron estudiantes"
             });
         }
-        //Respuesta exitosa
-        res.json({
-            estudiante
-        });
+        res.json({ estudiantes });
     } catch (error) {
         res.status(500).json({
             error: "Error del servidor"
@@ -147,7 +153,7 @@ const eliminarEstudiante = async (req, res) => {
 export {
     crearEstudiante,
     obtenerEstudiantes,
-    obtenerEstudiante,
+    buscarEstudiante,
     actualizarEstudiante,
     eliminarEstudiante
 };
