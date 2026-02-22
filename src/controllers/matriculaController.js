@@ -2,18 +2,18 @@ import Matricula from "../models/Matricula.js";
 import Estudiante from "../models/Estudiante.js";
 import Materia from "../models/Materia.js";
 import mongoose from "mongoose";
-import e from "cors";   
 
 // CREAR MATRÍCULA
 const crearMatricula = async (req, res) => {
     try {
         const { codigo, descripcion, estudiante, materia } = req.body;
+        // Validar campos obligatorios
         if (!codigo || !estudiante || !materia) {
             return res.status(400).json({
                 msg: "Los campos obligatorios no están completos"
             });
         }
-        // Validar ObjectId
+        // Validar formato ObjectId
         if (
             !mongoose.Types.ObjectId.isValid(estudiante) ||
             !mongoose.Types.ObjectId.isValid(materia)
@@ -22,36 +22,33 @@ const crearMatricula = async (req, res) => {
                 msg: "ID de estudiante o materia no válido"
             });
         }
-        // Verificar que existan
-        const existeEstudiante = await Estudiante.findById(estudiante);
-        const existeMateria = await Materia.findById(materia);
+        // Verificar existencia en BD
+        const [existeEstudiante, existeMateria] = await Promise.all([
+            Estudiante.findById(estudiante),
+            Materia.findById(materia)
+        ]);
         if (!existeEstudiante || !existeMateria) {
             return res.status(404).json({
                 msg: "Estudiante o materia no encontrados"
             });
         }
-        // Verificar que no esté ya matriculado en esa materia
-        const yaMatriculado = await Matricula.findOne({
-            estudiante,
-            materia
-        });
+        // Verificar duplicado
+        const yaMatriculado = await Matricula.findOne({estudiante,materia});
         if (yaMatriculado) {
             return res.status(400).json({
                 msg: "El estudiante ya está matriculado en esta materia"
             });
         }
-        const matricula = new Matricula({
-            codigo,
-            descripcion,
-            estudiante,
-            materia
-        });
-        await matricula.save();
+        const matricula = await Matricula.create({codigo,descripcion,estudiante,materia});
         res.status(201).json({
-            msg: "Matrícula creada correctamente",
-            matricula
+            msg: "Matrícula creada correctamente",matricula
         });
     } catch (error) {
+        if (error.name === "ValidationError") {
+            return res.status(400).json({
+                msg: error.message
+            });
+        }
         res.status(500).json({
             msg: "Error del servidor al crear matrícula"
         });
@@ -114,7 +111,7 @@ const actualizarMatricula = async (req, res) => {
                 msg: "Matrícula no encontrada"
             });
         }
-        // Si se envía estudiante o materia, validarlos
+        // Validar estudiante si viene
         if (estudiante) {
             if (!mongoose.Types.ObjectId.isValid(estudiante)) {
                 return res.status(400).json({
@@ -129,6 +126,7 @@ const actualizarMatricula = async (req, res) => {
             }
             matricula.estudiante = estudiante;
         }
+        // Validar materia si viene
         if (materia) {
             if (!mongoose.Types.ObjectId.isValid(materia)) {
                 return res.status(400).json({
@@ -142,6 +140,17 @@ const actualizarMatricula = async (req, res) => {
                 });
             }
             matricula.materia = materia;
+        }
+        // Validar duplicado después del cambio
+        const yaMatriculado = await Matricula.findOne({
+            estudiante: matricula.estudiante,
+            materia: matricula.materia,
+            _id: { $ne: id }
+        });
+        if (yaMatriculado) {
+            return res.status(400).json({
+                msg: "Ya existe una matrícula con este estudiante y materia"
+            });
         }
         if (codigo) matricula.codigo = codigo;
         if (descripcion) matricula.descripcion = descripcion;
@@ -181,7 +190,6 @@ const eliminarMatricula = async (req, res) => {
         });
     }
 };
-
 
 export{
     crearMatricula,

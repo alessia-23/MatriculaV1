@@ -1,108 +1,146 @@
 import Estudiante from "../models/Estudiante.js";
+import mongoose from "mongoose";
 
 // CREAR ESTUDIANTE
 const crearEstudiante = async (req, res) => {
     try {
-        const {nombre,
-            apellido,
-            cedula,
-            fecha_nacimiento,
-            ciudad,
-            direccion,
-            telefono,
-            email
-        } = req.body;
-
+        const {nombre,apellido,cedula,fecha_nacimiento,ciudad,direccion,telefono,email} = req.body;
+        // Validar campos obligatorios
         if (!nombre || !apellido || !cedula || !fecha_nacimiento || !direccion || !email) {
-            return res.status(400).json({ msg: "Campos obligatorios incompletos" });
+            return res.status(400).json({
+                error: "Campos obligatorios incompletos"
+            });
         }
-
+        // Verificar cédula duplicada
         const existeEstudiante = await Estudiante.findOne({ cedula });
-
         if (existeEstudiante) {
-            return res.status(400).json({ msg: "La cédula ya está registrada" });
+            return res.status(400).json({
+                error: "La cédula ya está registrada"
+            });
         }
-
-        const estudiante = new Estudiante(req.body);
+        // Crear estudiante usando solo los campos permitidos
+        const estudiante = new Estudiante({nombre,apellido,cedula,fecha_nacimiento,ciudad,direccion,telefono,email});
         await estudiante.save();
-
         res.status(201).json({
-            msg: "Estudiante creado correctamente",
+            message: "Estudiante creado correctamente",
             estudiante
         });
-
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ msg: "Error del servidor" });
+        // Capturar errores de validación del modelo
+        if (error.name === "ValidationError") {
+            return res.status(400).json({
+                error: error.message
+            });
+        }
+        res.status(500).json({
+            error: "Error del servidor"
+        });
     }
 };
-
 
 // OBTENER TODOS
 const obtenerEstudiantes = async (req, res) => {
     try {
         const estudiantes = await Estudiante.find();
-        res.json(estudiantes);
+        res.json({
+            estudiantes
+        });
     } catch (error) {
-        res.status(500).json({ msg: "Error del servidor" });
+        res.status(500).json({
+            error: "Error del servidor"});
     }
 };
-
 
 // OBTENER POR ID
 const obtenerEstudiante = async (req, res) => {
     try {
-        const estudiante = await Estudiante.findById(req.params.id);
+        const { id } = req.params;
+        //Validar formato ObjectId
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "ID no válido"
+            });
+        }
+        //Buscar en BD
+        const estudiante = await Estudiante.findById(id);
         if (!estudiante) {
-            return res.status(404).json({ msg: "Estudiante no encontrado" });
+            return res.status(404).json({
+                error: "Estudiante no encontrado"
+            });
         }
-        res.json(estudiante);
+        //Respuesta exitosa
+        res.json({
+            estudiante
+        });
     } catch (error) {
-        if (error.name === "CastError") {
-            return res.status(400).json({ msg: "ID no válido" });
-        }
-        res.status(500).json({ msg: "Error del servidor" });
+        res.status(500).json({
+            error: "Error del servidor"
+        });
     }
 };
-
 
 // ACTUALIZAR
 const actualizarEstudiante = async (req, res) => {
     try {
+        const { id } = req.params;
+        // Validar formato ObjectId
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "ID no válido"
+            });
+        }
         const estudiante = await Estudiante.findByIdAndUpdate(
-            req.params.id,
+            id,
             req.body,
-            { new: true }
+            {
+                new: true,
+                runValidators: true  
+            }
         );
         if (!estudiante) {
-            return res.status(404).json({ msg: "Estudiante no encontrado" });
+            return res.status(404).json({
+                error: "Estudiante no encontrado"
+            });
         }
         res.json({
-            msg: "Estudiante actualizado",
+            message: "Estudiante actualizado correctamente",
             estudiante
         });
     } catch (error) {
-        if (error.name === "CastError") {
-            return res.status(400).json({ msg: "ID no válido" });
+        if (error.name === "ValidationError") {
+            return res.status(400).json({
+                error: error.message
+            });
         }
-        res.status(500).json({ msg: "Error del servidor" });
+        res.status(500).json({
+            error: "Error del servidor"
+        });
     }
 };
-
 
 // ELIMINAR
 const eliminarEstudiante = async (req, res) => {
     try {
-        const estudiante = await Estudiante.findByIdAndDelete(req.params.id);
+        const { id } = req.params;
+        // Validar ObjectId
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "ID no válido"
+            });
+        }
+        const estudiante = await Estudiante.findByIdAndDelete(id);
         if (!estudiante) {
-            return res.status(404).json({ msg: "Estudiante no encontrado" });
+            return res.status(404).json({
+                error: "Estudiante no encontrado"
+            });
         }
-        res.json({ msg: "Estudiante eliminado" });
+        res.json({
+            message: "Estudiante eliminado correctamente"
+        });
     } catch (error) {
-        if (error.name === "CastError") {
-            return res.status(400).json({ msg: "ID no válido" });
-        }
-        res.status(500).json({ msg: "Error del servidor" });
+        res.status(500).json({
+            error: "Error del servidor"
+        });
     }
 };
 

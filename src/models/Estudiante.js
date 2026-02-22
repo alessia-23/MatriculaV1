@@ -11,12 +11,18 @@ const estudianteSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    cedula: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true
-    },
+cedula: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    validate: {
+        validator: function(v) {
+            return v.length === 10 && !isNaN(v);
+        },
+        message: "La cédula debe tener exactamente 10 números"
+    }
+},
     fecha_nacimiento: {
         type: Date,
         required: true
@@ -31,10 +37,17 @@ const estudianteSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    telefono: {
-        type: String,
-        trim: true
-    },
+telefono: {
+    type: String,
+    required: true,
+    trim: true,
+    validate: {
+        validator: function(v) {
+            return v.length === 10 && !isNaN(v);
+        },
+        message: "El teléfono debe tener exactamente 10 números"
+    }
+},
     email: {
         type: String,
         required: true,
