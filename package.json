@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Sistema de gestión de matrículas",
   "type": "module",
-  "main": "src/app.js",
+  "main": "src/index.js",
 "scripts": {
   "start": "node src/index.js",
   "dev": "node --watch src/index.js"

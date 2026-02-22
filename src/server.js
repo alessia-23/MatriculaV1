@@ -12,7 +12,7 @@ dotenv.config()
 const app = express()
 
 // Configuraciones
-app.set('port', process.env.PORT || 3000)
+//app.set('port', process.env.PORT || 3000)
 
 // Middlewares
 app.use(express.json())
