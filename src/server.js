@@ -25,10 +25,10 @@ app.use(express.json());
 connection();
 
 // Rutas
-app.use('/api', authRoutes);
-app.use('/api', estudianteRoutes);
-app.use('/api', materiaRoutes);
-app.use('/api', matriculaRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/estudiantes', estudianteRoutes);
+app.use('/api/materias', materiaRoutes);
+app.use('/api/matriculas', matriculaRoutes);
 
 const PORT = process.env.PORT || 3000;
 
