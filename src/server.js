@@ -1,35 +1,39 @@
-import express from 'express'
-import cors from 'cors'
-import dotenv from 'dotenv'
-// Colocar las rutas de los endpoints
-import authRoutes from './routes/authRoutes.js'
-import estudianteRoutes from './routes/estudianteRoutes.js'
-import materiaRoutes from './routes/materiaRoutes.js'
-import matriculaRoutes from './routes/matriculaRoutes.js'
-dotenv.config()
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import { conectarDB } from './config/database.js';
 
-// Inicializaciones
-const app = express()
+// Importar rutas
+import authRoutes from './routes/authRoutes.js';
+import estudianteRoutes from './routes/estudianteRoutes.js';
+import materiaRoutes from './routes/materiaRoutes.js';
+import matriculaRoutes from './routes/matriculaRoutes.js';
 
-// Configuraciones
-app.set('port', process.env.PORT || 3000)
+dotenv.config();
 
-// Middlewares
-app.use(express.json())
-app.use(cors())
+const app = express();
 
-// Ruta de prueba
-app.get('/', (req, res) => {
-    res.send('SERVER ON')
-})
+// CORS ABIERTOS
+app.use(cors({
+    origin: '*', 
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-//Ruta para login
-app.use('/api/auth', authRoutes)
-//Ruta para estudiantes
-app.use('/api/estudiantes', estudianteRoutes)
-//Ruta para materias
-app.use('/api/materias', materiaRoutes)
-// Ruta para matrículas
-app.use('/api/matriculas', matriculaRoutes)
+app.use(express.json());
 
-export default app
+// Conectar a la base de datos
+conectarDB();
+
+// Rutas
+app.use('/api', authRoutes);
+app.use('/api', estudianteRoutes);
+app.use('/api', materiaRoutes);
+app.use('/api', matriculaRoutes);
+
+// PUERTO DINÁMICO
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
+});
