@@ -9,18 +9,11 @@ const crearMatricula = async (req, res) => {
         const { codigo, descripcion, estudiante, materia } = req.body;
         // Validar campos obligatorios
         if (!codigo || !estudiante || !materia) {
-            return res.status(400).json({
-                msg: "Los campos obligatorios no están completos"
-            });
+            return res.status(400).json({ msg: "Los campos obligatorios no están completos" });
         }
         // Validar formato ObjectId
-        if (
-            !mongoose.Types.ObjectId.isValid(estudiante) ||
-            !mongoose.Types.ObjectId.isValid(materia)
-        ) {
-            return res.status(400).json({
-                msg: "ID de estudiante o materia no válido"
-            });
+        if (!mongoose.Types.ObjectId.isValid(estudiante) || !mongoose.Types.ObjectId.isValid(materia)) {
+            return res.status(400).json({ msg: "ID de estudiante o materia no válido" });
         }
         // Verificar existencia en BD
         const [existeEstudiante, existeMateria] = await Promise.all([
@@ -28,30 +21,30 @@ const crearMatricula = async (req, res) => {
             Materia.findById(materia)
         ]);
         if (!existeEstudiante || !existeMateria) {
-            return res.status(404).json({
-                msg: "Estudiante o materia no encontrados"
-            });
+            return res.status(404).json({ msg: "Estudiante o materia no encontrados" });
         }
-        // Verificar duplicado
-        const yaMatriculado = await Matricula.findOne({estudiante,materia});
+        // Validar duplicado por código
+        const yaExisteCodigo = await Matricula.findOne({ codigo });
+        if (yaExisteCodigo) {
+            return res.status(400).json({ msg: "El código de la matrícula ya está en uso" });
+        }
+        // Verificar duplicado estudiante + materia
+        const yaMatriculado = await Matricula.findOne({ estudiante, materia });
         if (yaMatriculado) {
-            return res.status(400).json({
-                msg: "El estudiante ya está matriculado en esta materia"
-            });
+            return res.status(400).json({ msg: "El estudiante ya está matriculado en esta materia" });
         }
-        const matricula = await Matricula.create({codigo,descripcion,estudiante,materia});
+        // Crear matrícula
+        const matricula = await Matricula.create({ codigo, descripcion, estudiante, materia });
         res.status(201).json({
-            msg: "Matrícula creada correctamente",matricula
+            msg: "Matrícula creada correctamente",
+            matricula
         });
     } catch (error) {
         if (error.name === "ValidationError") {
-            return res.status(400).json({
-                msg: error.message
-            });
+            return res.status(400).json({ msg: error.message });
         }
-        res.status(500).json({
-            msg: "Error del servidor al crear matrícula"
-        });
+        console.error(error);
+        res.status(500).json({ msg: "Error del servidor al crear matrícula" });
     }
 };
 
